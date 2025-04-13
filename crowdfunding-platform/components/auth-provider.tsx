@@ -33,13 +33,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        // Get user profile to check admin status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single()
+
         setUser({
           id: session.user.id,
           email: session.user.email!,
           name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
-          isAdmin: session.user.user_metadata?.isAdmin || false,
+          isAdmin: profile?.is_admin || false,
           profilePicture: session.user.user_metadata?.avatar_url,
         })
       }
@@ -49,11 +56,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for changes on auth state (signed in, signed out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
       if (session?.user) {
+        // Get user profile to check admin status
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single()
+
         setUser({
           id: session.user.id,
           email: session.user.email!,
           name: session.user.user_metadata?.name || session.user.email!.split('@')[0],
-          isAdmin: session.user.user_metadata?.isAdmin || false,
+          isAdmin: profile?.is_admin || false,
           profilePicture: session.user.user_metadata?.avatar_url,
         })
       } else {
