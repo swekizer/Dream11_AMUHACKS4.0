@@ -105,18 +105,18 @@ export default function CreateFundraiserPage() {
       
       // Upload images to Supabase Storage
       const imageUrls = await Promise.all(
-        data.images.map(async (file: File) => {
+        data.images.map(async (file: File, index: number) => {
           try {
             const fileExt = file.name.split('.').pop()
-            const fileName = `${Math.random()}.${fileExt}`
-            // Make sure the path includes the user ID correctly
-            const filePath = `${fileName}`  // Changed from `${user.id}/${fileName}`
-      
+            // Use a more unique filename with timestamp
+            const fileName = `${Date.now()}-${index}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+            
+            // Try uploading without user folder structure
             const { error: uploadError } = await supabase.storage
               .from('fundraiser-images')
-              .upload(filePath, file, {
+              .upload(fileName, file, {
                 cacheControl: '3600',
-                upsert: true,  // Changed from false to true
+                upsert: true,
                 contentType: file.type
               })
       
@@ -124,7 +124,7 @@ export default function CreateFundraiserPage() {
       
             const { data: { publicUrl } } = supabase.storage
               .from('fundraiser-images')
-              .getPublicUrl(filePath)
+              .getPublicUrl(fileName)
       
             if (!publicUrl) {
               throw new Error('Failed to get public URL for uploaded image')
