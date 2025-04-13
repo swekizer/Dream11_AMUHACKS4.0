@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
+// Removed unused Checkbox import
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/components/auth-provider"
 import Navbar from "@/components/navbar"
@@ -192,7 +192,7 @@ export default function FundraiserPage() {
       // Calculate total donations and unique donors
       const donations = fundraiserData.donations || []
       const totalDonations = donations.reduce((sum: number, donation: any) => sum + (donation.amount || 0), 0)
-      const uniqueDonors = new Set(donations.map((d: any) => d.user_id)).size
+// Removed unused uniqueDonors calculation
 
       // Fetch creator profile
       const { data: profileData, error: profileError } = await supabase
@@ -494,9 +494,10 @@ export default function FundraiserPage() {
         if (unlikeError) throw unlikeError
 
         // Update comment likes count in the database
+        const currentLikes = comments.find(c => c.id === commentId)?.likes || 0
         const { error: updateError } = await supabase
           .from('comments')
-          .update({ likes: supabase.raw('likes - 1') })
+          .update({ likes: Math.max(0, currentLikes - 1) })
           .eq('id', commentId)
 
         if (updateError) throw updateError
@@ -521,9 +522,10 @@ export default function FundraiserPage() {
         if (likeError) throw likeError
 
         // Update comment likes count in the database
+        const currentLikes = comments.find(c => c.id === commentId)?.likes || 0
         const { error: updateError } = await supabase
           .from('comments')
-          .update({ likes: supabase.raw('likes + 1') })
+          .update({ likes: currentLikes + 1 })
           .eq('id', commentId)
 
         if (updateError) throw updateError
@@ -732,9 +734,9 @@ export default function FundraiserPage() {
                         <div key={comment.id} className="rounded-lg border bg-card p-4">
                           <div className="flex gap-3">
                             <Avatar className="h-10 w-10">
-                              <AvatarImage 
-                                src={comment.user && comment.user.image ? comment.user.image : "/placeholder.svg"} 
-                                alt={comment.user && comment.user.name ? comment.user.name : "User"} 
+                              <AvatarImage
+                                src={comment.user && comment.user.image ? comment.user.image : "/placeholder.svg"}
+                                alt={comment.user && comment.user.name ? comment.user.name : "User"}
                               />
                               <AvatarFallback>
                                 {comment.user && comment.user.name ? comment.user.name.charAt(0) : "U"}
@@ -903,7 +905,7 @@ export default function FundraiserPage() {
                           Cancel
                         </Button>
                         <Button
-                          onClick={handleDonation}
+                          onClick={handleProceedToPayment}
                           className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
                         >
                           Proceed to Payment
@@ -994,15 +996,14 @@ export default function FundraiserPage() {
               <CardContent className="space-y-4">
                 {loadingSimilar ? (
                   <div className="flex min-h-[100px] items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    <Loader2 className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 ) : similarFundraisers.length > 0 ? (
                   similarFundraisers.map((similar) => {
-                    // Skip rendering if similar is undefined
                     if (!similar) return null;
-                    
+
                     return (
-                      <div key={similar.id || 'unknown'} className="flex gap-3">
+                      <div key={similar.id} className="flex gap-4 rounded-md">
                         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md">
                           <img
                             src={similar.image || "/placeholder.svg"}
@@ -1012,7 +1013,7 @@ export default function FundraiserPage() {
                         </div>
                         <div className="flex-1">
                           <h4 className="text-sm font-medium line-clamp-1">{similar.title || "Untitled Campaign"}</h4>
-                          <p className="text-xs text-muted-foreground line-clamp-1">
+                          <p className="text-xs text-muted-foreground line-clamp-2">
                             ₹{similar.raised ? similar.raised.toLocaleString() : "0"} raised of ₹{similar.goal ? similar.goal.toLocaleString() : "0"} goal
                           </p>
                           <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary" asChild>
@@ -1023,7 +1024,7 @@ export default function FundraiserPage() {
                     );
                   })
                 ) : (
-                  <div className="text-center text-sm text-muted-foreground">
+                  <div className="text-center text-muted-foreground">
                     No similar fundraisers found.
                   </div>
                 )}
@@ -1032,7 +1033,10 @@ export default function FundraiserPage() {
           </div>
         </div>
       </main>
-      <ConfettiCelebration show={showCelebration} onComplete={() => setShowCelebration(false)} />
+      <ConfettiCelebration 
+        show={showCelebration} 
+        onComplete={() => setShowCelebration(false)} 
+      />
       <DonationSuccessDialog
         isOpen={showSuccessDialog}
         onClose={() => setShowSuccessDialog(false)}

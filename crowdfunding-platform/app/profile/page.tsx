@@ -12,7 +12,7 @@ import Navbar from '@/components/navbar';
 import { useToast } from "@/components/ui/use-toast"
 import CampaignCard from '@/components/campaign-card';
 import DonationCard from '@/components/donation-card';
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 interface Profile {
   id: string;
@@ -26,12 +26,15 @@ interface Profile {
 interface Campaign {
   id: string;
   title: string;
-  image_url?: string;
+  description: string;
+  category: string;
+  image_url: string;
   goal_amount: number;
   current_amount: number;
-  category: string;
   created_at: string;
+  user_id: string;
   status: string;
+  creator_name: string;
 }
 
 interface Donation {
@@ -85,12 +88,28 @@ export default function ProfilePage() {
       // Fetch user's campaigns with fresh data
       const { data: campaignsData, error: campaignsError } = await supabase
         .from('campaigns')
-        .select('id, title, image_url, goal_amount, current_amount, category, created_at, status')
+        .select('id, title, description, image_url, goal_amount, current_amount, category, created_at, status, user_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
           
       if (campaignsError) throw campaignsError
-      setCampaigns(campaignsData || [])
+      
+      // Transform the data to include all required properties
+      const transformedCampaigns: Campaign[] = (campaignsData || []).map(campaign => ({
+        id: campaign.id,
+        title: campaign.title,
+        description: campaign.description || '',
+        image_url: campaign.image_url || '',
+        goal_amount: campaign.goal_amount,
+        current_amount: campaign.current_amount,
+        category: campaign.category,
+        created_at: campaign.created_at,
+        status: campaign.status,
+        user_id: campaign.user_id,
+        creator_name: profile?.name || 'Anonymous'
+      }))
+      
+      setCampaigns(transformedCampaigns)
 
       // Fetch user's donations
       try {
@@ -114,7 +133,7 @@ export default function ProfilePage() {
           if (campaignIds.length > 0) {
             const { data: campaignsData, error: campaignsError } = await supabase
               .from('campaigns')
-              .select('id, title, image_url, goal_amount, current_amount')
+              .select('id, title, description, image_url, goal_amount, current_amount, category, created_at, status, user_id')
               .in('id', campaignIds);
               
             if (campaignsError) {
@@ -123,10 +142,17 @@ export default function ProfilePage() {
               campaignsMap = campaignsData.reduce((acc: Record<string, Campaign>, campaign) => {
                 if (campaign && campaign.id) {
                   acc[campaign.id] = {
-                    ...campaign,
-                    category: '',
-                    created_at: new Date().toISOString(),
-                    status: 'active'
+                    id: campaign.id,
+                    title: campaign.title,
+                    description: campaign.description || '',
+                    image_url: campaign.image_url || '',
+                    goal_amount: campaign.goal_amount,
+                    current_amount: campaign.current_amount,
+                    category: campaign.category || '',
+                    created_at: campaign.created_at || new Date().toISOString(),
+                    status: campaign.status || 'active',
+                    user_id: campaign.user_id || '',
+                    creator_name: 'Anonymous'
                   };
                 }
                 return acc;
@@ -201,7 +227,7 @@ export default function ProfilePage() {
     loadProfile()
   }, [user, authLoading])
 
-  // Add real-time subscription for campaign updates
+  // Update the real-time subscription handler
   useEffect(() => {
     if (!user) return;
 
@@ -217,11 +243,12 @@ export default function ProfilePage() {
         },
         (payload: RealtimePostgresChangesPayload<Campaign>) => {
           // Update the campaigns list when changes occur
-          if (payload.new && 'id' in payload.new) {
+          const newCampaign = payload.new as Campaign;
+          if (newCampaign?.id) {
             setCampaigns(currentCampaigns => 
               currentCampaigns.map(campaign => 
-                campaign.id === payload.new.id 
-                  ? { ...campaign, ...payload.new }
+                campaign.id === newCampaign.id 
+                  ? { ...campaign, ...newCampaign }
                   : campaign
               )
             );
@@ -402,7 +429,7 @@ export default function ProfilePage() {
           
           {/* Main Content */}
           <div className="md:col-span-3">
-            <Tabs defaultValue="fundraisers" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="flex justify-between items-center mb-6">
                 <TabsList>
                   <TabsTrigger value="fundraisers">My Fundraisers</TabsTrigger>
@@ -458,7 +485,6 @@ export default function ProfilePage() {
                     <CampaignCard
                       key={like.id}
                       campaign={like.campaign}
-                      isLiked
                     />
                   ))
                 ) : (

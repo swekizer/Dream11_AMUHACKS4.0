@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+// Remove the unused Button import
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -10,27 +10,6 @@ import Navbar from "@/components/navbar"
 import CategoryIcon from "@/components/category-icon"
 import { Search, Filter } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-
-interface Creator {
-  name: string | null
-}
-
-interface CampaignResponse {
-  id: string
-  title: string
-  description: string
-  category: string
-  image_url: string
-  goal_amount: number
-  current_amount: number
-  created_at: string
-  user_id: string
-  status: string
-  profiles: {
-    name: string
-    avatar_url: string | null
-  } | null
-}
 
 interface Campaign {
   id: string

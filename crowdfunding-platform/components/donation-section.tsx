@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -229,7 +228,6 @@ export default function DonationSection({
   }
 
   const progressPercentage = Math.min(100, (currentAmount / goalAmount) * 100)
-  const isMilestone = progressPercentage % 25 === 0 && progressPercentage > 0
 
   return (
     <Card className="w-full card-hover">

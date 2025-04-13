@@ -74,7 +74,7 @@ export default function SettingsPage() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`
       const filePath = `avatars/${fileName}`
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(filePath, file, {
           cacheControl: '3600',

@@ -14,7 +14,7 @@ import { useAuth } from "@/components/auth-provider"
 import Navbar from "@/components/navbar"
 import CategoryIcon from "@/components/category-icon"
 import ConfettiCelebration from "@/components/confetti-celebration"
-import { Upload, Info, AlertCircle, X } from "lucide-react"
+import { Info, AlertCircle, X } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { fundraiserSchema, type FundraiserFormData } from "@/lib/validations/fundraiser"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -111,7 +111,7 @@ export default function CreateFundraiserPage() {
             const fileName = `${Math.random()}.${fileExt}`
             const filePath = `${user.id}/${fileName}`
 
-            const { error: uploadError, data: uploadData } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
               .from('fundraiser-images')
               .upload(filePath, file, {
                 cacheControl: '3600',

@@ -1,27 +1,28 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Edit, Trash2 } from "lucide-react"
 
 interface Campaign {
   id: string;
   title: string;
-  image_url?: string;
+  description: string;
+  category: string;
+  image_url: string;
   goal_amount: number;
   current_amount: number;
-  category: string;
   created_at: string;
+  user_id: string;
   status: string;
+  creator_name: string;
 }
 
 interface CampaignCardProps {
   campaign: Campaign | null;
   onEdit?: () => void;
   onDelete?: () => void;
-  isLiked?: boolean;
 }
 
-export default function CampaignCard({ campaign, onEdit, onDelete, isLiked }: CampaignCardProps) {
+export default function CampaignCard({ campaign, onEdit, onDelete }: CampaignCardProps) {
   if (!campaign) return null;
 
   const progress = ((campaign.current_amount || 0) / campaign.goal_amount) * 100;
