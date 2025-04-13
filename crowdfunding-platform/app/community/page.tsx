@@ -3,18 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from '@/components/navbar';
-import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/lib/supabase'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Profile {
   id: string;
-  name: string | null;
+  username: string;
   avatar_url: string | null;
-  email: string | null;
 }
 
 interface SocialPost {
@@ -28,65 +25,32 @@ interface SocialPost {
 export default function CommunityPage() {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [newPost, setNewPost] = useState('');
-  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Initialize session and fetch posts
-    const initializeSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Initial session check:', { 
-          session: !!session, 
-          error,
-          user: session?.user 
-        });
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          return;
-        }
-
-        if (session) {
-          console.log('Session found, fetching posts');
-          await fetchPosts();
-        } else {
-          console.log('No session found');
-          toast({
-            title: "Session Expired",
-            description: "Please log in again to continue.",
-            variant: "destructive",
-          });
-        }
-      } catch (error) {
-        console.error('Error initializing session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeSession();
+    fetchPosts();
   }, []);
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('social_posts')
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
         .select(`
           *,
-          profile:profiles(id, name, avatar_url, email)
+          profile:profiles(username, avatar_url)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPosts(data || []);
+      if (postsError) throw postsError;
+
+      setPosts(postsData || []);
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast({
         title: "Error",
-        description: "Failed to load posts. Please try again later.",
+        description: "Failed to fetch posts",
         variant: "destructive",
       });
     }
@@ -96,10 +60,10 @@ export default function CommunityPage() {
     e.preventDefault();
     if (!user) return;
 
-    setIsSubmitting(true);
     try {
+      setIsSubmitting(true);
       const { error } = await supabase
-        .from('social_posts')
+        .from('posts')
         .insert([{ content: newPost, user_id: user.id }]);
 
       if (error) throw error;
@@ -108,13 +72,13 @@ export default function CommunityPage() {
       await fetchPosts();
       toast({
         title: "Success",
-        description: "Your post has been published.",
+        description: "Post created successfully",
       });
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
         title: "Error",
-        description: "Failed to create post. Please try again.",
+        description: "Failed to create post",
         variant: "destructive",
       });
     } finally {
@@ -128,43 +92,52 @@ export default function CommunityPage() {
       <main className="container max-w-4xl px-4 py-6 md:px-6 md:py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold sm:text-3xl">Community</h1>
-          <p className="mt-1 text-muted-foreground">Share updates and connect with others.</p>
+          <p className="mt-1 text-muted-foreground">
+            Share your thoughts and connect with others
+          </p>
         </div>
 
         {user && (
-          <form onSubmit={handleSubmit} className="mb-8">
-            <Textarea
-              value={newPost}
-              onChange={(e) => setNewPost(e.target.value)}
-              placeholder="Share your thoughts..."
-              className="mb-4"
-              rows={3}
-            />
-            <Button type="submit" disabled={isSubmitting || !newPost.trim()}>
-              {isSubmitting ? "Posting..." : "Post"}
-            </Button>
-          </form>
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <textarea
+                  className="w-full rounded-md border p-2"
+                  rows={3}
+                  placeholder="What's on your mind?"
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                />
+                <Button type="submit" disabled={isSubmitting || !newPost.trim()}>
+                  {isSubmitting ? "Posting..." : "Post"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         )}
 
-        <div className="space-y-6">
-          {posts.map((post) => (
-            <div key={post.id} className="rounded-lg border bg-card p-6">
-              <div className="mb-4 flex items-center gap-4">
-                <Avatar>
-                  <AvatarImage src={post.profile.avatar_url || undefined} />
-                  <AvatarFallback>
-                    {post.profile.name?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{post.profile.name || 'Anonymous'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                  </p>
+        <div className="space-y-4">
+          {posts.map(post => (
+            <Card key={post.id}>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <img
+                    src={post.profile.avatar_url || "/placeholder.svg"}
+                    alt={post.profile.username}
+                    className="h-8 w-8 rounded-full"
+                  />
+                  <div>
+                    <CardTitle className="text-sm">{post.profile.username}</CardTitle>
+                    <CardDescription>
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
-              <p className="whitespace-pre-wrap">{post.content}</p>
-            </div>
+              </CardHeader>
+              <CardContent>
+                <p>{post.content}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </main>

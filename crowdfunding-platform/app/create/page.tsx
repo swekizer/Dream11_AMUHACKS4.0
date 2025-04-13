@@ -134,16 +134,15 @@ export default function CreateFundraiserPage() {
             const fileName = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
             
             // First check if the bucket exists and is accessible
-            const { data: bucketData, error: bucketError } = await supabase()
+            const { error: bucketError } = await supabase
               .storage
               .getBucket('fundraiser-images')
-            
+
             if (bucketError) {
-              console.error('Bucket error:', bucketError)
               throw new Error('Storage bucket not accessible')
             }
 
-            const { error: uploadError } = await supabase()
+            const { error: uploadError } = await supabase
               .storage
               .from('fundraiser-images')
               .upload(fileName, file, {
@@ -157,7 +156,7 @@ export default function CreateFundraiserPage() {
               throw uploadError
             }
       
-            const { data: { publicUrl } } = supabase()
+            const { data: { publicUrl } } = supabase
               .storage
               .from('fundraiser-images')
               .getPublicUrl(fileName)
@@ -175,7 +174,7 @@ export default function CreateFundraiserPage() {
       )
 
       // Create fundraiser in the database
-      const { data: fundraiser, error: dbError } = await supabase()
+      const { data: fundraiser, error: dbError } = await supabase
         .from('campaigns')
         .insert({
           user_id: user.id,
