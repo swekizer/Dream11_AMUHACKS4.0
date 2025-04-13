@@ -30,6 +30,7 @@ import { supabase } from "@/lib/supabase"
 //import { Skeleton } from "@/components/ui/skeleton"
 //import DonationSection from "@/components/donation-section"
 import DonationSuccessDialog from "@/components/donation-success-dialog"
+import DonationDialog from "@/components/donation-dialog"
 
 // Interface for fundraiser data
 interface FundraiserData {
@@ -91,6 +92,7 @@ export default function FundraiserPage() {
     amount: number
     isAnonymous: boolean
   } | null>(null)
+  const [showDonationDialog, setShowDonationDialog] = useState(false)
 
   // Fetch similar fundraisers based on category
   const fetchSimilarFundraisers = async (category: string, currentId: string) => {
@@ -561,6 +563,73 @@ export default function FundraiserPage() {
     setIsLiked(!isLiked)
   }
 
+  const handleDonationSuccess = async (amount: number) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to make a donation",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Create donation record
+      const { data: donation, error: donationError } = await supabase
+        .from('donations')
+        .insert({
+          campaign_id: params.id,
+          user_id: user.id,
+          amount: amount,
+          message: null
+        })
+        .select()
+        .single()
+
+      if (donationError) throw donationError
+
+      const newAmount = fundraiser.raised + amount;
+
+      // Update campaign's current amount
+      const { error: updateError } = await supabase
+        .from('campaigns')
+        .update({ 
+          current_amount: newAmount
+        })
+        .eq('id', params.id)
+
+      if (updateError) throw updateError
+
+      // Update local state with fresh data
+      setFundraiser(prev => prev ? {
+        ...prev,
+        raised: newAmount,
+        donors: [
+          {
+            id: donation.id.toString(),
+            name: user.name || "Anonymous",
+            amount: amount,
+            date: new Date().toISOString(),
+            anonymous: false,
+          },
+          ...prev.donors,
+        ],
+      } : null)
+
+      toast({
+        title: "Thank you for your donation!",
+        description: "Your contribution has been recorded.",
+      })
+    } catch (error) {
+      console.error('Error processing donation:', error)
+      toast({
+        title: "Error",
+        description: "Failed to process donation. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -863,127 +932,12 @@ export default function FundraiserPage() {
                     </div>
                   )}
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90">
-                        Donate Now
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Make a Donation</DialogTitle>
-                        <DialogDescription>Your contribution will help make this project a reality.</DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="amount">Donation Amount (₹)</Label>
-                          <Input
-                            id="amount"
-                            type="number"
-                            min="1"
-                            step="1"
-                            placeholder="Enter amount in rupees"
-                            value={donationAmount}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              if (value === "" || parseFloat(value) >= 1) {
-                                setDonationAmount(value);
-                              }
-                            }}
-                            className="appearance-none"
-                          />
-                          {donationAmount && (isNaN(parseFloat(donationAmount)) || parseFloat(donationAmount) <= 0) && (
-                            <p className="text-sm text-destructive">Please enter a valid donation amount</p>
-                          )}
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowPaymentDialog(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleProceedToPayment}
-                          className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-                        >
-                          Proceed to Payment
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Complete Payment</DialogTitle>
-                        <DialogDescription>Scan the QR code to pay via UPI</DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="space-y-4 rounded-lg border bg-card p-4">
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Amount to pay: ₹{parseFloat(donationAmount).toFixed(2)}</p>
-                            <p className="text-sm text-muted-foreground">Fundraiser: {fundraiser.title}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <DialogFooter className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => setShowPaymentDialog(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleDonation}
-                          className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-                        >
-                          Payment Complete
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Donation Successful</DialogTitle>
-                      </DialogHeader>
-                      <div className="py-6 flex flex-col items-center gap-4">
-                        <div className="rounded-full bg-green-100 p-3">
-                          <CheckCircle2 className="h-6 w-6 text-green-600" />
-                        </div>
-                        <h2 className="text-2xl font-semibold">Thank You!</h2>
-                        <p className="text-center text-muted-foreground">
-                          Your donation of ₹{parseFloat(donationAmount).toFixed(2)} has been received.
-                        </p>
-                      </div>
-                      <DialogFooter className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setShowSuccessDialog(false)
-                            router.refresh()
-                          }}
-                        >
-                          Close
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            // Handle receipt download
-                            toast({
-                              title: "Receipt downloaded",
-                              description: "Your donation receipt has been downloaded.",
-                            })
-                          }}
-                          className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-                        >
-                          Download Receipt
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+                    onClick={() => setShowDonationDialog(true)}
+                  >
+                    Donate Now
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1044,6 +998,12 @@ export default function FundraiserPage() {
         fundraiserTitle={fundraiser?.title || ""}
         isAnonymous={donationSuccess?.isAnonymous || false}
         donorName={user?.name || "Anonymous"}
+      />
+      <DonationDialog
+        isOpen={showDonationDialog}
+        onClose={() => setShowDonationDialog(false)}
+        fundraiserTitle={fundraiser.title}
+        onDonationSuccess={handleDonationSuccess}
       />
     </>
   )
