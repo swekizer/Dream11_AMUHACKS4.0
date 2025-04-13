@@ -84,16 +84,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      if (error) throw error
+      if (error) {
+        throw error
+      }
+      // Verify the session was created
+      if (!data.session) {
+        throw new Error('No session created')
+      }
     } catch (error) {
       console.error("Login error:", error)
+      setLoading(false) // Make sure to reset loading on error
       throw error
-    } finally {
-      setLoading(false)
     }
   }
 
