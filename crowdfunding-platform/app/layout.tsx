@@ -10,8 +10,8 @@ import Footer from "@/components/footer"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FundRaiser - Crowdfunding Platform",
-  description: "A platform to create and support fundraising campaigns",
+  title: "TheGoodSociety - Crowdfunding Platform",
+  description: "A platform for social good and community support",
     generator: 'v0.dev'
 }
 

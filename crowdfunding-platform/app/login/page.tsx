@@ -48,11 +48,12 @@ export default function LoginPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-gray-900/20" />
           <div className="absolute bottom-0 left-0 right-0 p-12 text-white">
-            <h1 className="text-3xl font-bold">FundRaiser</h1>
-            <p className="mt-4 text-lg">
-              "Together, we can make a difference. Join our community of changemakers and support causes that matter."
-            </p>
-            <p className="mt-2 text-sm text-gray-300">— Our Team</p>
+            <div className="flex flex-col space-y-2 text-center">
+              <h1 className="text-3xl font-bold">TheGoodSociety</h1>
+              <p className="text-sm text-muted-foreground">
+                Enter your email to sign in to your account
+              </p>
+            </div>
           </div>
         </div>
       </div>

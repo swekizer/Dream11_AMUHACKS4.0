@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="w-full border-t bg-background">
       <div className="container grid gap-8 px-4 py-10 md:grid-cols-2 md:px-6 lg:grid-cols-4">
         <div className="space-y-4">
-          <h3 className="text-lg font-bold">FundRaiser</h3>
+          <h3 className="text-lg font-bold">TheGoodSociety</h3>
           <p className="text-sm text-muted-foreground">
             A platform to create and support fundraising campaigns for causes that matter.
           </p>
@@ -75,7 +75,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t py-6 text-center text-sm text-muted-foreground">
-        <p>© {new Date().getFullYear()} FundRaiser. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} TheGoodSociety. All rights reserved.</p>
       </div>
     </footer>
   )
