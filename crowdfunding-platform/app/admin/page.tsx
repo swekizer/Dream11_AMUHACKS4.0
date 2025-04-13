@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import Navbar from "@/components/navbar"
 import { Check, X, Eye, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { useAuth } from '@/components/auth-provider'
 
 interface Campaign {
   id: string
@@ -28,8 +29,7 @@ interface Campaign {
 }
 
 export default function AdminPage() {
-  // Remove this line since it's not being used
-  // const router = useRouter()
+  const { user } = useAuth()
   const { toast } = useToast()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,16 +39,11 @@ export default function AdminPage() {
   const [password, setPassword] = useState("")
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-  // Check if admin is already logged in (from localStorage)
   useEffect(() => {
-    const adminLoggedIn = localStorage.getItem("adminLoggedIn")
-    if (adminLoggedIn === "true") {
-      setIsLoggedIn(true)
+    if (user?.isAdmin) {
       fetchCampaigns()
-    } else {
-      setLoading(false)
     }
-  }, [])
+  }, [user])
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,227 +110,164 @@ export default function AdminPage() {
     }
   }
 
-  const handleApprove = async (id: string) => {
+  const handleStatusChange = async (campaignId: string, newStatus: 'approved' | 'rejected') => {
     try {
-      setProcessingId(id)
-      
       const { error } = await supabase
         .from('campaigns')
-        .update({ status: 'approved' })
-        .eq('id', id)
+        .update({ status: newStatus })
+        .eq('id', campaignId)
 
-      if (error) {
-        console.error('Error approving campaign:', error)
-        throw error
-      }
+      if (error) throw error
 
-      // Update local state
-      setCampaigns(prev => 
-        prev.map(campaign => 
-          campaign.id === id 
-            ? { ...campaign, status: 'approved' } 
-            : campaign
-        )
-      )
+      setCampaigns(campaigns.map(campaign =>
+        campaign.id === campaignId
+          ? { ...campaign, status: newStatus }
+          : campaign
+      ))
 
       toast({
-        title: "Campaign approved",
-        description: "The campaign has been approved and is now visible to users.",
+        title: "Success",
+        description: `Campaign ${newStatus} successfully`,
       })
     } catch (error) {
-      console.error('Error approving campaign:', error)
+      console.error('Error updating campaign status:', error)
       toast({
         title: "Error",
-        description: "Failed to approve the campaign. Please try again.",
+        description: "Failed to update campaign status",
         variant: "destructive",
       })
-    } finally {
-      setProcessingId(null)
     }
   }
 
-  const handleReject = async (id: string) => {
-    try {
-      setProcessingId(id)
-      
-      const { error } = await supabase
-        .from('campaigns')
-        .update({ status: 'rejected' })
-        .eq('id', id)
-
-      if (error) {
-        console.error('Error rejecting campaign:', error)
-        throw error
-      }
-
-      // Update local state
-      setCampaigns(prev => 
-        prev.map(campaign => 
-          campaign.id === id 
-            ? { ...campaign, status: 'rejected' } 
-            : campaign
-        )
-      )
-
-      toast({
-        title: "Campaign rejected",
-        description: "The campaign has been rejected and will not be visible to users.",
-      })
-    } catch (error) {
-      console.error('Error rejecting campaign:', error)
-      toast({
-        title: "Error",
-        description: "Failed to reject the campaign. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setProcessingId(null)
-    }
-  }
-
-  // If not logged in, show login form
-  if (!isLoggedIn) {
+  if (!user?.isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <>
         <Navbar />
-        <div className="container mx-auto py-12">
-          <Card className="max-w-md mx-auto">
+        <main className="container max-w-4xl px-4 py-6 md:px-6 md:py-8">
+          <Card>
             <CardHeader>
-              <CardTitle>Admin Login</CardTitle>
-              <CardDescription>Enter your admin credentials to access the dashboard</CardDescription>
+              <CardTitle>Access Denied</CardTitle>
+              <CardDescription>
+                You do not have permission to access this page.
+              </CardDescription>
             </CardHeader>
-            <form onSubmit={handleLogin}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter admin username"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter admin password"
-                    required
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full">Login</Button>
-              </CardFooter>
-            </form>
           </Card>
-        </div>
-      </div>
+        </main>
+      </>
     )
   }
 
-  // If logged in, show admin dashboard
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
       <Navbar />
-      <div className="container mx-auto py-12">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <Button variant="outline" onClick={handleLogout}>Logout</Button>
+      <main className="container max-w-4xl px-4 py-6 md:px-6 md:py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold sm:text-3xl">Admin Dashboard</h1>
+          <p className="mt-1 text-muted-foreground">
+            Manage and moderate fundraisers
+          </p>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="pending" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="approved">Approved</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="pending" className="space-y-4">
-              {campaigns.filter(c => c.status === 'pending').length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No pending campaigns
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {campaigns
-                    .filter(c => c.status === 'pending')
-                    .map(campaign => (
-                      <CampaignCard
-                        key={campaign.id}
-                        campaign={campaign}
-                        onApprove={() => handleApprove(campaign.id)}
-                        onReject={() => handleReject(campaign.id)}
-                        processingId={processingId}
-                      />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
+          <TabsContent value="pending" className="space-y-4">
+            {loading ? (
+              <div>Loading...</div>
+            ) : campaigns.filter(c => c.status === 'pending').length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No pending campaigns
+              </div>
+            ) : (
+              campaigns
+                .filter(c => c.status === 'pending')
+                .map(campaign => (
+                  <Card key={campaign.id}>
+                    <CardHeader>
+                      <CardTitle>{campaign.title}</CardTitle>
+                      <CardDescription>
+                        Goal: ${campaign.goal_amount}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p>{campaign.description}</p>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleStatusChange(campaign.id, 'approved')}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => handleStatusChange(campaign.id, 'rejected')}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+            )}
+          </TabsContent>
 
-            <TabsContent value="approved" className="space-y-4">
-              {campaigns.filter(c => c.status === 'approved').length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No approved campaigns
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {campaigns
-                    .filter(c => c.status === 'approved')
-                    .map(campaign => (
-                      <CampaignCard
-                        key={campaign.id}
-                        campaign={campaign}
-                        onApprove={() => handleApprove(campaign.id)}
-                        onReject={() => handleReject(campaign.id)}
-                        processingId={processingId}
-                      />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
+          <TabsContent value="approved" className="space-y-4">
+            {loading ? (
+              <div>Loading...</div>
+            ) : campaigns.filter(c => c.status === 'approved').length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No approved campaigns
+              </div>
+            ) : (
+              campaigns
+                .filter(c => c.status === 'approved')
+                .map(campaign => (
+                  <Card key={campaign.id}>
+                    <CardHeader>
+                      <CardTitle>{campaign.title}</CardTitle>
+                      <CardDescription>
+                        Goal: ${campaign.goal_amount}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{campaign.description}</p>
+                    </CardContent>
+                  </Card>
+                ))
+            )}
+          </TabsContent>
 
-            <TabsContent value="rejected" className="space-y-4">
-              {campaigns.filter(c => c.status === 'rejected').length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    No rejected campaigns
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {campaigns
-                    .filter(c => c.status === 'rejected')
-                    .map(campaign => (
-                      <CampaignCard
-                        key={campaign.id}
-                        campaign={campaign}
-                        onApprove={() => handleApprove(campaign.id)}
-                        onReject={() => handleReject(campaign.id)}
-                        processingId={processingId}
-                      />
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
-    </div>
+          <TabsContent value="rejected" className="space-y-4">
+            {loading ? (
+              <div>Loading...</div>
+            ) : campaigns.filter(c => c.status === 'rejected').length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No rejected campaigns
+              </div>
+            ) : (
+              campaigns
+                .filter(c => c.status === 'rejected')
+                .map(campaign => (
+                  <Card key={campaign.id}>
+                    <CardHeader>
+                      <CardTitle>{campaign.title}</CardTitle>
+                      <CardDescription>
+                        Goal: ${campaign.goal_amount}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{campaign.description}</p>
+                    </CardContent>
+                  </Card>
+                ))
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+    </>
   )
 }
 

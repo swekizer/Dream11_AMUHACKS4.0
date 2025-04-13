@@ -9,8 +9,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
 }
 
-// Single cached client instance for both server and client
-export const supabase = cache(() => {
+// Create a single cached instance
+const createSupabaseClient = cache(() => {
   if (typeof window === 'undefined') {
     // Server-side
     return createClient(supabaseUrl, supabaseAnonKey)
@@ -19,3 +19,6 @@ export const supabase = cache(() => {
     return createClientComponentClient()
   }
 })
+
+// Export the client instance
+export const supabase = createSupabaseClient()

@@ -2,8 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-// Replace the direct import with our cached version
-import { createClientSupabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 type User = {
   id: string
@@ -31,8 +30,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null)
   const [loading, setLoading] = useState(true)
-  // Use the cached client instead of creating a new one
-  const supabase = createClientSupabase()
 
   useEffect(() => {
     // Check active sessions and sets the user
@@ -68,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [])
 
   const login = async (email: string, password: string) => {
     setLoading(true)
