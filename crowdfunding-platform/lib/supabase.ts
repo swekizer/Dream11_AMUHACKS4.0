@@ -9,10 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env.local file.')
 }
 
-// Server-side Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Cached client-side Supabase client
-export const createClientSupabase = cache(() => {
-  return createClientComponentClient()
+// Single cached client instance for both server and client
+export const supabase = cache(() => {
+  if (typeof window === 'undefined') {
+    // Server-side
+    return createClient(supabaseUrl, supabaseAnonKey)
+  } else {
+    // Client-side
+    return createClientComponentClient()
+  }
 })

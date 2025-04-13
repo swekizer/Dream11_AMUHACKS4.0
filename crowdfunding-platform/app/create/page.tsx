@@ -65,8 +65,31 @@ export default function CreateFundraiserPage() {
       return
     }
 
+    // Validate file types and sizes
+    const validFiles = files.filter(file => {
+      const isValidType = file.type.startsWith('image/')
+      const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB limit
+      
+      if (!isValidType) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload only image files",
+          variant: "destructive",
+        })
+      }
+      if (!isValidSize) {
+        toast({
+          title: "File too large",
+          description: "Maximum file size is 5MB",
+          variant: "destructive",
+        })
+      }
+      
+      return isValidType && isValidSize
+    })
+
     const imageUrls: string[] = []
-    files.forEach((file: File) => {
+    validFiles.forEach((file: File) => {
       try {
         const url = URL.createObjectURL(file) as string
         imageUrls.push(url)
@@ -77,7 +100,7 @@ export default function CreateFundraiserPage() {
     
     if (imageUrls.length > 0) {
       setPreviewUrls((prev: string[]) => [...prev, ...imageUrls])
-      setValue("images", [...watch("images"), ...files])
+      setValue("images", [...watch("images"), ...validFiles])
     }
   }
 
@@ -101,7 +124,7 @@ export default function CreateFundraiserPage() {
         throw new Error("You must be logged in to create a fundraiser")
       }
 
-      console.log('Starting image upload process...');
+      console.log('Starting image upload process...')
       
       // Upload images to Supabase Storage
       const imageUrls = await Promise.all(
@@ -110,16 +133,32 @@ export default function CreateFundraiserPage() {
             const fileExt = file.name.split('.').pop()
             const fileName = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
             
-            const { error: uploadError } = await supabase.storage
+            // First check if the bucket exists and is accessible
+            const { data: bucketData, error: bucketError } = await supabase()
+              .storage
+              .getBucket('fundraiser-images')
+            
+            if (bucketError) {
+              console.error('Bucket error:', bucketError)
+              throw new Error('Storage bucket not accessible')
+            }
+
+            const { error: uploadError } = await supabase()
+              .storage
               .from('fundraiser-images')
               .upload(fileName, file, {
                 cacheControl: '3600',
-                upsert: false // Change to false to prevent overwriting
+                upsert: false,
+                contentType: file.type
               })
       
-            if (uploadError) throw uploadError
+            if (uploadError) {
+              console.error('Upload error:', uploadError)
+              throw uploadError
+            }
       
-            const { data: { publicUrl } } = supabase.storage
+            const { data: { publicUrl } } = supabase()
+              .storage
               .from('fundraiser-images')
               .getPublicUrl(fileName)
       
@@ -129,14 +168,14 @@ export default function CreateFundraiserPage() {
       
             return publicUrl
           } catch (error) {
-            console.error('Image upload error:', error);
+            console.error('Image upload error:', error)
             throw error
           }
         })
       )
 
       // Create fundraiser in the database
-      const { data: fundraiser, error: dbError } = await supabase
+      const { data: fundraiser, error: dbError } = await supabase()
         .from('campaigns')
         .insert({
           user_id: user.id,

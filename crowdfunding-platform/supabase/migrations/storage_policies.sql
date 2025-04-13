@@ -1,3 +1,14 @@
+-- Create the fundraiser-images bucket if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM storage.buckets WHERE name = 'fundraiser-images'
+  ) THEN
+    INSERT INTO storage.buckets (id, name, public)
+    VALUES ('fundraiser-images', 'fundraiser-images', true);
+  END IF;
+END $$;
+
 -- Enable RLS
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
