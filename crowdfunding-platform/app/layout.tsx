@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from "@/components/auth-provider"
 import Footer from "@/components/footer"
+import { headers } from 'next/headers'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -45,3 +46,16 @@ export default function RootLayout({
 
 
 import './globals.css'
+
+// Add error boundary
+export async function generateStaticParams() {
+  return {
+    notFound: {
+      about: true,
+      'about/careers': true,
+      'about/team': true,
+      cookies: true,
+      privacy: true,
+    },
+  }
+}

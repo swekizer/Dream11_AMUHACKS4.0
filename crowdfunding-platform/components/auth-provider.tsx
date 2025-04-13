@@ -88,17 +88,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       })
-      if (error) {
-        throw error
+
+      if (error) throw error
+
+      // Verify the session exists
+      if (!data?.session?.user) {
+        throw new Error('Authentication failed')
       }
-      // Verify the session was created
-      if (!data.session) {
-        throw new Error('No session created')
+
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', data.session.user.id)
+        .single()
+
+      if (profileError) {
+        // If profile doesn't exist, create one
+        await supabase.from('profiles').insert({
+          id: data.session.user.id,
+          is_admin: false,
+        })
       }
+
+      setUser({
+        id: data.session.user.id,
+        email: data.session.user.email!,
+        name: data.session.user.user_metadata?.name || data.session.user.email!.split('@')[0],
+        isAdmin: profile?.is_admin || false,
+        profilePicture: data.session.user.user_metadata?.avatar_url,
+      })
+
+      return data
     } catch (error) {
       console.error("Login error:", error)
-      setLoading(false) // Make sure to reset loading on error
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
