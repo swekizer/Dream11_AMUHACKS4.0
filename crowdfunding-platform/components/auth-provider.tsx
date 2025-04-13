@@ -2,9 +2,8 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-// Remove the unused import
-// import { User as SupabaseUser } from "@supabase/supabase-js"
+// Replace the direct import with our cached version
+import { createClientSupabase } from '@/lib/supabase'
 
 type User = {
   id: string
@@ -32,7 +31,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null)
   const [loading, setLoading] = useState(true)
-  const [supabase] = useState(() => createClientComponentClient())
+  // Use the cached client instead of creating a new one
+  const supabase = createClientSupabase()
 
   useEffect(() => {
     // Check active sessions and sets the user

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+//import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useAuth } from '@/components/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from "@/components/ui/use-toast";
 import Navbar from '@/components/navbar';
 import { formatDistanceToNow } from 'date-fns';
+import { createClientSupabase } from '@/lib/supabase'
 
 interface Profile {
   id: string;
@@ -33,7 +34,8 @@ export default function CommunityPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [supabase] = useState(() => createClientComponentClient());
+  // Use the cached client instead of creating a new one
+  const supabase = createClientSupabase();
 
   useEffect(() => {
     // Initialize session and fetch posts
@@ -320,4 +322,4 @@ export default function CommunityPage() {
       </div>
     </div>
   );
-} 
+}

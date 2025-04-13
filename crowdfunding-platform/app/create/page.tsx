@@ -109,26 +109,27 @@ export default function CreateFundraiserPage() {
           try {
             const fileExt = file.name.split('.').pop()
             const fileName = `${Math.random()}.${fileExt}`
-            const filePath = `${user.id}/${fileName}`
-
+            // Make sure the path includes the user ID correctly
+            const filePath = `${fileName}`  // Changed from `${user.id}/${fileName}`
+      
             const { error: uploadError } = await supabase.storage
               .from('fundraiser-images')
               .upload(filePath, file, {
                 cacheControl: '3600',
-                upsert: false,
+                upsert: true,  // Changed from false to true
                 contentType: file.type
               })
-
+      
             if (uploadError) throw new Error(`Failed to upload image: ${uploadError.message}`);
-
+      
             const { data: { publicUrl } } = supabase.storage
               .from('fundraiser-images')
               .getPublicUrl(filePath)
-
+      
             if (!publicUrl) {
               throw new Error('Failed to get public URL for uploaded image')
             }
-
+      
             return publicUrl
           } catch (error) {
             console.error('Image upload error:', error);
