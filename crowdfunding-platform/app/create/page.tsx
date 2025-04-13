@@ -108,19 +108,16 @@ export default function CreateFundraiserPage() {
         data.images.map(async (file: File, index: number) => {
           try {
             const fileExt = file.name.split('.').pop()
-            // Use a more unique filename with timestamp
-            const fileName = `${Date.now()}-${index}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+            const fileName = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
             
-            // Try uploading without user folder structure
             const { error: uploadError } = await supabase.storage
               .from('fundraiser-images')
               .upload(fileName, file, {
                 cacheControl: '3600',
-                upsert: true,
-                contentType: file.type
+                upsert: false // Change to false to prevent overwriting
               })
       
-            if (uploadError) throw new Error(`Failed to upload image: ${uploadError.message}`);
+            if (uploadError) throw uploadError
       
             const { data: { publicUrl } } = supabase.storage
               .from('fundraiser-images')
