@@ -9,27 +9,20 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-// Removed unused Checkbox import
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/components/auth-provider"
 import Navbar from "@/components/navbar"
 import CategoryIcon from "@/components/category-icon"
 import ConfettiCelebration from "@/components/confetti-celebration"
-import { Calendar, Heart, Share2, MessageCircle, ThumbsUp, Send, Loader2, CheckCircle2 } from "lucide-react"
+import { Calendar, Heart, Share2, MessageCircle, ThumbsUp, Send, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
-//import { Skeleton } from "@/components/ui/skeleton"
-//import DonationSection from "@/components/donation-section"
-import DonationSuccessDialog from "@/components/donation-success-dialog"
 import DonationDialog from "@/components/donation-dialog"
 
 // Interface for fundraiser data
@@ -71,27 +64,13 @@ export default function FundraiserPage() {
   const router = useRouter()
   const [fundraiser, setFundraiser] = useState<FundraiserData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [donationAmount, setDonationAmount] = useState("")
-  const [isAnonymous, setIsAnonymous] = useState(false)
   const [commentContent, setCommentContent] = useState("")
   const [isLiked, setIsLiked] = useState(false)
   const [similarFundraisers, setSimilarFundraisers] = useState<any[]>([])
   const [loadingSimilar, setLoadingSimilar] = useState(true)
   const [showCelebration, setShowCelebration] = useState(false)
   const [comments, setComments] = useState<any[]>([])
-  // Remove this line since the state variable isn't being used
-  // const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  // Remove this line since the state variable isn't being used
-  // const [isCreator, setIsCreator] = useState(false)
-  // Remove this line since the state variable isn't being used
-  // const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-  const [donationSuccess, setDonationSuccess] = useState<{
-    amount: number
-    isAnonymous: boolean
-  } | null>(null)
   const [showDonationDialog, setShowDonationDialog] = useState(false)
 
   // Fetch similar fundraisers based on category
@@ -194,7 +173,6 @@ export default function FundraiserPage() {
       // Calculate total donations and unique donors
       const donations = fundraiserData.donations || []
       const totalDonations = donations.reduce((sum: number, donation: any) => sum + (donation.amount || 0), 0)
-// Removed unused uniqueDonors calculation
 
       // Fetch creator profile
       const { data: profileData, error: profileError } = await supabase
@@ -296,102 +274,16 @@ export default function FundraiserPage() {
   const isNearGoal = percentRaised >= 70 && percentRaised < 100
   const isGoalReached = percentRaised >= 100
 
-  const handleProceedToPayment = () => {
-    if (!donationAmount || isNaN(parseFloat(donationAmount)) || parseFloat(donationAmount) <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid donation amount.",
-        variant: "destructive",
-      })
-      return
-    }
-    setShowPaymentDialog(true)
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href)
+    toast({
+      title: "Link copied",
+      description: "Fundraiser link copied to clipboard.",
+    })
   }
 
-  const handleDonation = async () => {
-    try {
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to make a donation",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Create donation record
-      const { data: donation, error: donationError } = await supabase
-        .from('donations')
-        .insert({
-          campaign_id: params.id,
-          user_id: user.id,
-          amount: parseFloat(donationAmount),
-          message: isAnonymous ? "Anonymous donation" : null
-        })
-        .select()
-        .single()
-
-      if (donationError) throw donationError
-
-      const newAmount = fundraiser.raised + parseFloat(donationAmount);
-
-      // Update campaign's current amount
-      const { error: updateError } = await supabase
-        .from('campaigns')
-        .update({ 
-          current_amount: newAmount
-        })
-        .eq('id', params.id)
-
-      if (updateError) throw updateError
-
-      // Fetch updated campaign data to ensure we have the latest state
-      const { data: updatedCampaign, error: fetchError } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', params.id)
-        .single()
-
-      if (fetchError) throw fetchError
-
-      // Update local state with fresh data
-      setFundraiser(prev => prev ? {
-        ...prev,
-        ...updatedCampaign,
-        raised: newAmount,
-        donors: [
-          {
-            id: donation.id.toString(),
-            name: isAnonymous ? "Anonymous" : user.name || "Anonymous",
-            amount: parseFloat(donationAmount),
-            date: new Date().toISOString(),
-            anonymous: isAnonymous,
-          },
-          ...prev.donors,
-        ],
-      } : null)
-
-      setShowPaymentDialog(false)
-      setDonationSuccess({
-        amount: parseFloat(donationAmount),
-        isAnonymous: isAnonymous
-      })
-      setShowSuccessDialog(true)
-      setDonationAmount("")
-      setIsAnonymous(false)
-
-      toast({
-        title: "Thank you for your donation!",
-        description: "Your contribution has been recorded.",
-      })
-    } catch (error) {
-      console.error('Error processing donation:', error)
-      toast({
-        title: "Error",
-        description: "Failed to process donation. Please try again.",
-        variant: "destructive",
-      })
-    }
+  const handleLike = () => {
+    setIsLiked(!isLiked)
   }
 
   const handleComment = async () => {
@@ -549,18 +441,6 @@ export default function FundraiserPage() {
         variant: "destructive",
       })
     }
-  }
-
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href)
-    toast({
-      title: "Link copied",
-      description: "Fundraiser link copied to clipboard.",
-    })
-  }
-
-  const handleLike = () => {
-    setIsLiked(!isLiked)
   }
 
   const handleDonationSuccess = async (amount: number) => {
@@ -990,14 +870,6 @@ export default function FundraiserPage() {
       <ConfettiCelebration 
         show={showCelebration} 
         onComplete={() => setShowCelebration(false)} 
-      />
-      <DonationSuccessDialog
-        isOpen={showSuccessDialog}
-        onClose={() => setShowSuccessDialog(false)}
-        amount={donationSuccess?.amount || 0}
-        fundraiserTitle={fundraiser?.title || ""}
-        isAnonymous={donationSuccess?.isAnonymous || false}
-        donorName={user?.name || "Anonymous"}
       />
       <DonationDialog
         isOpen={showDonationDialog}
