@@ -17,7 +17,7 @@
 
 | Layer          | Tech Used                                  |
 |----------------|--------------------------------------------|
-| Frontend       | Next.js                                    |
+| Frontend       | Next.js + React.js + Tailwind CSS          |
 | Backend        | Supabase (Database, Auth, Storage)         |
 | Hosting        | Vercel                                     |
 | Dev Tools      | VS Code, GitHub                            |
