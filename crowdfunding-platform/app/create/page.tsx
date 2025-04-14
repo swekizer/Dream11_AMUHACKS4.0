@@ -50,6 +50,7 @@ export default function CreateFundraiserPage() {
       goal: 0,
       description: "",
       images: [],
+      // endDate field removed as requested
     },
   })
 
@@ -100,7 +101,7 @@ export default function CreateFundraiserPage() {
     
     if (imageUrls.length > 0) {
       setPreviewUrls((prev: string[]) => [...prev, ...imageUrls])
-      setValue("images", [...watch("images"), ...validFiles])
+      setValue("images", [...(watch("images") || []), ...validFiles])
     }
   }
 
@@ -108,7 +109,7 @@ export default function CreateFundraiserPage() {
     const currentImages = watch("images")
     setValue(
       "images",
-      currentImages.filter((_, i: number) => i !== index)
+      (currentImages ?? []).filter((_, i: number) => i !== index)
     )
     const urlToRevoke = previewUrls[index]
     if (urlToRevoke) {
@@ -121,86 +122,94 @@ export default function CreateFundraiserPage() {
     setIsSubmitting(true)
     try {
       if (!user) {
+        setIsSubmitting(false)
         throw new Error("You must be logged in to create a fundraiser")
       }
 
-      console.log('Starting image upload process...', data.images.length, 'images to upload')
-      
-      // Upload images to Supabase Storage
-      const imageUrls = await Promise.all(
-        data.images.map(async (file: File, index: number) => {
-          try {
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${user.id}/${Date.now()}-${index}.${fileExt}`
+      // Validate required fields
+      if (!data.title || !data.category || !data.description || data.goal <= 0) {
+        throw new Error("Please fill in all required fields")
+      }
 
-            console.log(`Uploading image ${index + 1}:`, fileName)
+      let imageUrl = null
+      
+      // Upload image first if exists
+      if (data.images && data.images.length > 0) {
+        const file = data.images[0]
+        const fileExt = file?.name.split('.').pop() ?? 'jpg'
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('fundraiser-images')
+            .upload(fileName, file as File)
 
-            const { error: uploadError } = await supabase  // Remove unused uploadData
-              .storage
-              .from('fundraiser-images')
-              .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: true, // Changed to true to handle potential duplicates
-                contentType: file.type
-              })
-      
-            if (uploadError) {
-              console.error(`Upload error for image ${index + 1}:`, uploadError)
-              throw uploadError
-            }
-
-            console.log(`Successfully uploaded image ${index + 1}`)
-      
-            const { data: { publicUrl } } = supabase
-              .storage
-              .from('fundraiser-images')
-              .getPublicUrl(fileName)
-      
-            if (!publicUrl) {
-              throw new Error(`Failed to get public URL for image ${index + 1}`)
-            }
-      
-            return publicUrl
-          } catch (error) {
-            console.error(`Error processing image ${index + 1}:`, error)
-            throw error
+          if (uploadError) {
+            console.error('Upload error:', uploadError)
+            throw new Error(`Image upload failed: ${uploadError.message}`)
           }
-        })
-      )
 
-      console.log('All images uploaded successfully:', imageUrls)
-      
-      // Create fundraiser in the database
+          const { data: { publicUrl } } = supabase.storage
+            .from('fundraiser-images')
+            .getPublicUrl(fileName)
+
+          imageUrl = publicUrl
+        } catch (uploadErr) {
+          console.error('Image upload error:', uploadErr)
+          // Continue with form submission even if image upload fails
+          toast({
+            title: "Warning",
+            description: "Image upload failed, but your fundraiser will be created without images.",
+            variant: "destructive",
+          })
+        }
+      }
+
+      console.log('Submitting to database with data:', {
+        user_id: user.id,
+        title: data.title,
+        description: data.description,
+        goal_amount: data.goal,
+        category: data.category,
+        image_url: imageUrl
+      })
+
+      // Create fundraiser with image URL
       const { data: fundraiser, error: dbError } = await supabase
         .from('campaigns')
-        .insert({
+        .insert([{
           user_id: user.id,
           title: data.title,
           description: data.description,
           goal_amount: data.goal,
           category: data.category,
-          image_url: imageUrls[0], // Use first image as main image
-          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-          status: 'pending', // Set initial status as pending
-        })
+          status: 'pending',
+          current_amount: 0,
+          image_url: imageUrl,
+          end_date: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString()
+        }])
         .select()
         .single()
 
       if (dbError) {
         console.error('Database error:', dbError)
-        throw new Error(`Failed to create fundraiser: ${dbError.message}`)
+        throw new Error(`Database error: ${dbError.message}`)
       }
 
       if (!fundraiser) {
-        throw new Error('Failed to create fundraiser: No data returned')
+        throw new Error("Failed to create fundraiser")
       }
 
       setShowCelebration(true)
       toast({
         title: "Success!",
-        description: "Your fundraiser has been submitted for approval. You'll be notified once it's approved.",
+        description: "Your fundraiser has been created and is pending approval.",
       })
-      router.push(`/profile`)
+      
+      // Short delay before redirecting to ensure toast is seen
+      setTimeout(() => {
+        router.push(`/fundraiser/${fundraiser.id}`)
+      }, 1500)
     } catch (error) {
       console.error('Error creating fundraiser:', error)
       toast({
@@ -294,6 +303,10 @@ export default function CreateFundraiserPage() {
               {errors.goal && (
                 <p className="text-sm text-destructive">{errors.goal.message}</p>
               )}
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              <p>Your fundraiser will automatically close after 3 months.</p>
             </div>
           </div>
 
