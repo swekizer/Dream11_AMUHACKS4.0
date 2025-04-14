@@ -2,7 +2,7 @@
 
 **TheGoodSociety** is a full-stack, modern fundraising platform that allows users to create, manage, and donate to causes they care about — all while building a socially driven community. Inspired by GoFundMe and modern social networks, it bridges the gap between social impact and digital giving.
 
-[Live Site →](https://fundraiser-website-pearl.vercel.app/)
+[Live Site →](https://dream11-amuhacks-4-0-puzk3he86-swekit-patels-projects.vercel.app/)
 
 ## 🚀 Features
 
