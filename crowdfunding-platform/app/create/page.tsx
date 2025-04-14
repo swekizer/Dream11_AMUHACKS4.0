@@ -124,37 +124,32 @@ export default function CreateFundraiserPage() {
         throw new Error("You must be logged in to create a fundraiser")
       }
 
-      console.log('Starting image upload process...')
+      console.log('Starting image upload process...', data.images.length, 'images to upload')
       
       // Upload images to Supabase Storage
       const imageUrls = await Promise.all(
         data.images.map(async (file: File, index: number) => {
           try {
             const fileExt = file.name.split('.').pop()
-            const fileName = `${user.id}/${Date.now()}-${index}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
-            
-            // First check if the bucket exists and is accessible
-            const { error: bucketError } = await supabase
-              .storage
-              .getBucket('fundraiser-images')
+            const fileName = `${user.id}/${Date.now()}-${index}.${fileExt}`
 
-            if (bucketError) {
-              throw new Error('Storage bucket not accessible')
-            }
+            console.log(`Uploading image ${index + 1}:`, fileName)
 
-            const { error: uploadError } = await supabase
+            const { error: uploadError } = await supabase  // Remove unused uploadData
               .storage
               .from('fundraiser-images')
               .upload(fileName, file, {
                 cacheControl: '3600',
-                upsert: false,
+                upsert: true, // Changed to true to handle potential duplicates
                 contentType: file.type
               })
       
             if (uploadError) {
-              console.error('Upload error:', uploadError)
+              console.error(`Upload error for image ${index + 1}:`, uploadError)
               throw uploadError
             }
+
+            console.log(`Successfully uploaded image ${index + 1}`)
       
             const { data: { publicUrl } } = supabase
               .storage
@@ -162,17 +157,19 @@ export default function CreateFundraiserPage() {
               .getPublicUrl(fileName)
       
             if (!publicUrl) {
-              throw new Error('Failed to get public URL for uploaded image')
+              throw new Error(`Failed to get public URL for image ${index + 1}`)
             }
       
             return publicUrl
           } catch (error) {
-            console.error('Image upload error:', error)
+            console.error(`Error processing image ${index + 1}:`, error)
             throw error
           }
         })
       )
 
+      console.log('All images uploaded successfully:', imageUrls)
+      
       // Create fundraiser in the database
       const { data: fundraiser, error: dbError } = await supabase
         .from('campaigns')

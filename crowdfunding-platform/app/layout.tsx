@@ -2,11 +2,12 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import Footer from "@/components/footer"
-import { headers } from 'next/headers'
+// Remove this unused import
+// import { headers } from 'next/headers'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -45,17 +46,18 @@ export default function RootLayout({
 }
 
 
-import './globals.css'
+// Remove this duplicate import
+// import './globals.css'
 
-// Add error boundary
-export async function generateStaticParams() {
-  return {
-    notFound: {
-      about: true,
-      'about/careers': true,
-      'about/team': true,
-      cookies: true,
-      privacy: true,
-    },
-  }
-}
+// Remove incorrect generateStaticParams implementation
+// export async function generateStaticParams() {
+//   return {
+//     notFound: {
+//       about: true,
+//       'about/careers': true,
+//       'about/team': true,
+//       cookies: true,
+//       privacy: true,
+//     },
+//   }
+// }

@@ -84,44 +84,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+      // Check if this is an admin login attempt
+      const isAdminLogin = email === 'admin'
+      const loginEmail = isAdminLogin ? 'admin@admin.com' : email
+
+      const { data: { user }, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
         password,
       })
 
       if (error) throw error
 
-      // Verify the session exists
-      if (!data?.session?.user) {
-        throw new Error('Authentication failed')
+      // For admin login, verify admin status
+      if (isAdminLogin) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user?.id)
+          .single()
+
+        if (profileError) throw profileError
+
+        if (!profile?.is_admin) {
+          await supabase.auth.signOut()
+          throw new Error('Not authorized as admin')
+        }
       }
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', data.session.user.id)
-        .single()
-
-      if (profileError) {
-        // If profile doesn't exist, create one
-        await supabase.from('profiles').insert({
-          id: data.session.user.id,
-          is_admin: false,
-        })
-      }
-
-      setUser({
-        id: data.session.user.id,
-        email: data.session.user.email!,
-        name: data.session.user.user_metadata?.name || data.session.user.email!.split('@')[0],
-        isAdmin: profile?.is_admin || false,
-        profilePicture: data.session.user.user_metadata?.avatar_url,
-      })
-
-      return data
     } catch (error) {
-      console.error("Login error:", error)
       throw error
     } finally {
       setLoading(false)

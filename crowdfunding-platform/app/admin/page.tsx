@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
 import Navbar from "@/components/navbar"
 import { supabase } from "@/lib/supabase"
-import { useAuth } from '@/components/auth-provider'
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/use-toast"
 
 interface Campaign {
   id: string
@@ -23,16 +22,13 @@ interface Campaign {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth()
   const { toast } = useToast()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.isAdmin) {
-      fetchCampaigns()
-    }
-  }, [user])
+    fetchCampaigns()
+  }, [])
 
   const fetchCampaigns = async () => {
     try {
@@ -86,24 +82,6 @@ export default function AdminPage() {
         variant: "destructive",
       })
     }
-  }
-
-  if (!user?.isAdmin) {
-    return (
-      <>
-        <Navbar />
-        <main className="container max-w-4xl px-4 py-6 md:px-6 md:py-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-              <CardDescription>
-                You do not have permission to access this page.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </main>
-      </>
-    )
   }
 
   return (
