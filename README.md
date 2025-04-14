@@ -57,6 +57,10 @@
 
 5. Visit http://localhost:3000 in your browser
 
+## Admin Page
+
+- Go to /admin page to access the admin page where another dasboard will open up where you can approve or reject any campaigns
+
 ## 🌟 Future Directions
 
 - ✨ Real-time donations feed
