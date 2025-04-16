@@ -37,11 +37,7 @@
 
 ## ⚡ How to Run Locally
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/theGOOdSociety.git
-   cd theGOOdSociety
-   ```
+1. Clone the repository
 
 2. Install dependencies:
    ```bash
