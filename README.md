@@ -70,7 +70,8 @@
 ## 🙏 Acknowledgements
 
 Built during a hackathon sprint using cutting-edge tools. Inspired by GoFundMe, Milaap, and the need for transparent, community-driven giving.
-AMUHACKS 4.0 
-#AMUHACKS 4.0 #CSSAMU #AMU
+Built during AMUHACKS 4.0 Hackathon
+[Certificate →](https://drive.google.com/file/d/1U6ABDGRvyvjHyNRear7NSUd9TTvt7Ef5/view?usp=sharing)
+
 
 
